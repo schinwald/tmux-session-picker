@@ -1,0 +1,48 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build and publish macOS archive
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.3.14'
+
+      - name: Run tests
+        run: bun test src
+
+      - name: Build standalone executables
+        run: |
+          mkdir -p staging/bin release
+          bun build src/select.ts --compile --target=bun-darwin-arm64 --outfile=staging/bin/tmux-session-picker-darwin-arm64
+          bun build src/select.ts --compile --target=bun-darwin-x64 --outfile=staging/bin/tmux-session-picker-darwin-x86_64
+
+      - name: Package release archive
+        run: |
+          tar -C staging -czf release/tmux-session-picker-darwin-universal.tar.gz bin
+          shasum -a 256 release/tmux-session-picker-darwin-universal.tar.gz > release/tmux-session-picker.sha256
+
+      - name: Verify release archive
+        run: |
+          shasum -a 256 -c release/tmux-session-picker.sha256
+          mkdir verify
+          tar -C verify -xzf release/tmux-session-picker-darwin-universal.tar.gz
+          test -x verify/bin/tmux-session-picker-darwin-arm64
+          test -x verify/bin/tmux-session-picker-darwin-x86_64
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            release/tmux-session-picker-darwin-universal.tar.gz
+            release/tmux-session-picker.sha256

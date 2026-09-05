@@ -1,0 +1,12 @@
+{
+  "name": "tmux-session-picker",
+  "version": "0.1.0",
+  "type": "module",
+  "bin": {
+    "tmux-session-picker": "dist/tmux-session-picker"
+  },
+  "scripts": {
+    "build": "bun build src/select.ts --compile --outfile dist/tmux-session-picker",
+    "test": "bun test src"
+  }
+}
