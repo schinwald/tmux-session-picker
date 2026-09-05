@@ -1,6 +1,6 @@
 {
   "name": "tmux-session-picker",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "type": "module",
   "bin": {
     "tmux-session-picker": "dist/tmux-session-picker"
