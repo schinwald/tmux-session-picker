@@ -17,6 +17,7 @@ const white = '\u001b[97m';
 const selection = '\u001b[2;37m';
 const selectedBackground = '\u001b[48;2;41;46;66m';
 const boxWidth = 96;
+const headerTitle = ' TMUX SESSION PICKER ';
 
 let favorites = new Set<string>();
 let projects: Project[] = [];
@@ -87,7 +88,7 @@ const selectInteractive = async (): Promise<Project | null> => {
     const projectWidth = boxWidth - 16;
 
     output.write('\u001b[2J\u001b[H');
-    output.write(`${borderDim}╭─${reset}${bold} TMUX SESSION PICKER ${reset}${borderDim}${'─'.repeat(boxWidth - 16)}╮${reset}\n`);
+    output.write(`${borderDim}╭─${reset}${bold}${headerTitle}${reset}${borderDim}${'─'.repeat(boxWidth - headerTitle.length - 1)}╮${reset}\n`);
     screenRow += 1;
     printLine(`${bold}>${reset} ${white}${query}${reset}${white}█${reset}`);
     output.write(`${borderDim}├${'─'.repeat(boxWidth)}┤${reset}\n`);
