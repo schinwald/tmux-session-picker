@@ -27,7 +27,7 @@ The release workflow uses this token to update the tap formula's release URL and
 5. Validate and install from the tap:
 
    ```sh
-   brew style Formula/tmux-session-picker.rb
+   brew style "$(brew --repository schinwald/tmux-session-picker)/Formula/tmux-session-picker.rb"
    brew audit --new --strict schinwald/tmux-session-picker/tmux-session-picker
    brew update
    brew upgrade tmux-session-picker

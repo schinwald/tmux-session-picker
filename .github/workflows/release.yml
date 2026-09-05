@@ -78,12 +78,21 @@ jobs:
           contents = formula.read_text()
           tag = os.environ['TAG']
           sha256 = os.environ['SHA256']
-          contents = re.sub(
+          contents, url_replacements = re.subn(
               r'(releases/download/)v[^/]+(/tmux-session-picker-darwin-universal\.tar\.gz)',
               rf'\g<1>{tag}\g<2>',
               contents,
           )
-          contents = re.sub(r'(?m)^  sha256 "[0-9a-f]+"$', f'  sha256 "{sha256}"', contents)
+          contents, checksum_replacements = re.subn(
+              r'(?m)^  sha256 "[0-9a-f]+"$',
+              f'  sha256 "{sha256}"',
+              contents,
+          )
+          if url_replacements != 1 or checksum_replacements != 1:
+              raise SystemExit(
+                  'Expected exactly one release URL and SHA-256 replacement; '
+                  f'found {url_replacements} URL and {checksum_replacements} SHA-256 matches.'
+              )
           formula.write_text(contents)
           PY
           git -C homebrew-tap diff --check

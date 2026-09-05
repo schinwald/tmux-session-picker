@@ -1,4 +1,6 @@
-export const programVersion = '0.1.0';
+import packageJson from '../package.json' with { type: 'json' };
+
+export const programVersion = packageJson.version;
 
 export type CliAction = 'help' | 'version' | null;
 
