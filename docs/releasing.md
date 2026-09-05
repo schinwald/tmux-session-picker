@@ -1,5 +1,13 @@
 # Releasing
 
+## One-time setup
+
+Create a fine-grained GitHub personal access token with **Contents: Read and write** access to `schinwald/homebrew-tmux-session-picker`. Add it to the `schinwald/tmux-session-picker` repository as the `HOMEBREW_TAP_TOKEN` Actions secret.
+
+The release workflow uses this token to update the tap formula's release URL and SHA-256 after it publishes the GitHub Release.
+
+## Release steps
+
 1. Run the local checks:
 
    ```sh
@@ -15,9 +23,8 @@
    git push origin vX.Y.Z
    ```
 
-4. Wait for the release workflow to publish `tmux-session-picker-darwin-universal.tar.gz` and `tmux-session-picker.sha256`.
-5. Copy the release archive SHA-256 into `homebrew-tmux-session-picker/Formula/tmux-session-picker.rb`; update its versioned URL, then commit and push the tap.
-6. Validate and install from the tap:
+4. Wait for the release workflow to publish `tmux-session-picker-darwin-universal.tar.gz` and `tmux-session-picker.sha256`, then update `schinwald/homebrew-tmux-session-picker` automatically.
+5. Validate and install from the tap:
 
    ```sh
    brew style Formula/tmux-session-picker.rb
@@ -26,4 +33,4 @@
    brew upgrade tmux-session-picker
    ```
 
-7. Run `tmux-session-picker` inside and outside tmux. Confirm starting, attaching, filtering, and favorite persistence.
+6. Run `tmux-session-picker` inside and outside tmux. Confirm starting, attaching, filtering, and favorite persistence.

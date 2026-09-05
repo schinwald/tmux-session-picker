@@ -46,3 +46,50 @@ jobs:
           files: |
             release/tmux-session-picker-darwin-universal.tar.gz
             release/tmux-session-picker.sha256
+
+      - name: Check Homebrew tap token
+        env:
+          HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        run: |
+          test -n "$HOMEBREW_TAP_TOKEN" || {
+            echo 'HOMEBREW_TAP_TOKEN is required to update the Homebrew formula.' >&2
+            exit 1
+          }
+
+      - name: Check out Homebrew tap
+        uses: actions/checkout@v4
+        with:
+          repository: schinwald/homebrew-tmux-session-picker
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          path: homebrew-tap
+
+      - name: Update Homebrew formula
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          SHA256="$(shasum -a 256 release/tmux-session-picker-darwin-universal.tar.gz | awk '{print $1}')"
+          export SHA256
+          python3 - <<'PY'
+          import os
+          import re
+          from pathlib import Path
+
+          formula = Path('homebrew-tap/Formula/tmux-session-picker.rb')
+          contents = formula.read_text()
+          tag = os.environ['TAG']
+          sha256 = os.environ['SHA256']
+          contents = re.sub(
+              r'(releases/download/)v[^/]+(/tmux-session-picker-darwin-universal\.tar\.gz)',
+              rf'\g<1>{tag}\g<2>',
+              contents,
+          )
+          contents = re.sub(r'(?m)^  sha256 "[0-9a-f]+"$', f'  sha256 "{sha256}"', contents)
+          formula.write_text(contents)
+          PY
+          git -C homebrew-tap diff --check
+          git -C homebrew-tap diff --quiet && exit 0
+          git -C homebrew-tap config user.name 'github-actions[bot]'
+          git -C homebrew-tap config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git -C homebrew-tap add Formula/tmux-session-picker.rb
+          git -C homebrew-tap commit -m "release: update tmux-session-picker to ${TAG}"
+          git -C homebrew-tap push

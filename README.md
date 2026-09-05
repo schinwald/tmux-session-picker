@@ -36,7 +36,14 @@ Run from a shell:
 tmux-session-picker
 ```
 
-Select a project to start it if needed, then attach to its tmux session. When run inside tmux, it switches the current client instead.
+Options:
+
+```text
+-h, --help     Show usage
+-v, --version  Show version number
+```
+
+Select a project to start it if needed, then attach to its tmux session. When run inside tmux, it switches the current client instead. It reports a clear error if `tmux` or `tmuxinator` is not installed.
 
 ### tmux key binding
 
@@ -60,7 +67,7 @@ tmux source-file ~/.tmux.conf
 - Ctrl-F: toggle selected project as a favorite
 - Esc, `q` with an empty query, or Ctrl-C: close picker
 
-Favorites appear first and are stored at `~/.config/tmux-session-picker/favorites.json`.
+Favorites appear first and are stored at `$XDG_CONFIG_HOME/tmux-session-picker/favorites.json`, or `~/.config/tmux-session-picker/favorites.json` when `XDG_CONFIG_HOME` is unset.
 
 ## Development
 

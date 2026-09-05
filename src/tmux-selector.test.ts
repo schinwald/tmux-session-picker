@@ -2,7 +2,7 @@ import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { homedir, tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, test } from 'bun:test';
-import { favoritesPath, loadFavorites, saveFavorites } from './favorites';
+import { favoritesPath, getFavoritesPath, loadFavorites, saveFavorites } from './favorites';
 import { displayRoot, sessionName, sortProjects, type Project } from './projects';
 
 const project = (name: string): Project => ({
@@ -39,7 +39,10 @@ describe('tmux selector project logic', () => {
 });
 
 describe('favorites storage', () => {
-  test('uses a stable user configuration path', () => {
+  test('uses XDG_CONFIG_HOME or a stable user configuration path', () => {
+    expect(getFavoritesPath({ XDG_CONFIG_HOME: '/tmp/config' })).toBe(
+      '/tmp/config/tmux-session-picker/favorites.json',
+    );
     expect(favoritesPath).toBe(
       join(homedir(), '.config', 'tmux-session-picker', 'favorites.json'),
     );

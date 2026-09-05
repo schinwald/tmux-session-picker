@@ -3,6 +3,8 @@ import { stdin as input, stdout as output } from 'node:process';
 import { getProjects, sortProjects, type Project, displayRoot } from './projects';
 import { openProject } from './launcher';
 import { loadFavorites, saveFavorites } from './favorites';
+import { parseCliArguments, programVersion, usage } from './cli';
+import { dependencyError, missingDependencies } from './dependencies';
 
 const reset = '\u001b[0m';
 const dim = '\u001b[2m';
@@ -16,8 +18,8 @@ const selection = '\u001b[2;37m';
 const selectedBackground = '\u001b[48;2;41;46;66m';
 const boxWidth = 96;
 
-const favorites = loadFavorites();
-const projects = sortProjects(getProjects(), favorites);
+let favorites = new Set<string>();
+let projects: Project[] = [];
 
 const selectFallback = async (): Promise<Project | null> => {
   if (projects.length === 0) {
@@ -227,13 +229,32 @@ const selectInteractive = async (): Promise<Project | null> => {
 };
 
 const main = async () => {
+  const action = parseCliArguments(process.argv.slice(2));
+  if (action === 'help') {
+    console.log(usage);
+    return;
+  }
+  if (action === 'version') {
+    console.log(programVersion);
+    return;
+  }
+
+  const missing = missingDependencies();
+  if (missing.length > 0) {
+    console.error(dependencyError(missing));
+    process.exitCode = 1;
+    return;
+  }
+
+  favorites = loadFavorites();
+  projects = sortProjects(getProjects(), favorites);
   if (projects.length === 0) {
     console.log('No tmuxinator projects found.');
     return;
   }
 
   const selected = input.isTTY && output.isTTY ? await selectInteractive() : await selectFallback();
-  if (selected) process.exit(openProject(selected));
+  if (selected) process.exitCode = openProject(selected);
 };
 
 void main();
