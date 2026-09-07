@@ -5,6 +5,11 @@ import { join } from 'node:path';
 
 export type ProjectSource = 'tmuxinator' | 'tmux';
 
+export type TmuxSession = {
+  name: string;
+  path: string;
+};
+
 export type Project = {
   name: string;
   scope: string;
@@ -36,12 +41,15 @@ export const sessionName = (project: string) => {
 export const displayRoot = (root: string) =>
   root === home ? '~' : root.startsWith(`${home}/`) ? `~/${root.slice(home.length + 1)}` : root;
 
-const runningSessions = (): string[] => {
+const runningSessions = (): TmuxSession[] => {
   try {
-    const output = execFileSync('tmux', ['list-sessions', '-F', '#{session_name}'], {
+    const output = execFileSync('tmux', ['list-sessions', '-F', '#{session_name}\t#{session_path}'], {
       encoding: 'utf8',
     });
-    return output.trim().split('\n').map((session) => session.trim()).filter(Boolean);
+    return output.trim().split('\n').flatMap((line) => {
+      const [name, path] = line.split('\t');
+      return name && path ? [{ name, path }] : [];
+    });
   } catch {
     return [];
   }
@@ -59,18 +67,18 @@ const getRoot = (project: string) => {
   }
 };
 
-export const mergeProjects = (tmuxinatorProjects: Project[], activeSessions: Iterable<string>): Project[] => {
+export const mergeProjects = (tmuxinatorProjects: Project[], activeSessions: Iterable<TmuxSession>): Project[] => {
   const configuredSessions = new Set(tmuxinatorProjects.map((project) => project.session));
-  const rawSessions = [...new Set(activeSessions)]
-    .filter((session) => !configuredSessions.has(session))
+  const rawSessions = [...new Map([...activeSessions].map((session) => [session.name, session])).values()]
+    .filter((session) => !configuredSessions.has(session.name))
     .map((session): Project => ({
-      name: session,
+      name: session.name,
       scope: 'tmux',
-      project: `tmux/${session}`,
-      root: 'Running tmux session',
+      project: `tmux/${session.name}`,
+      root: session.path,
       running: true,
       source: 'tmux',
-      session,
+      session: session.name,
     }));
 
   return [...tmuxinatorProjects, ...rawSessions];
@@ -103,7 +111,7 @@ export const getProjects = (): Project[] => {
           scope: project.split('/')[0] ?? '',
           project,
           root: getRoot(project),
-          running: activeSessions.includes(session),
+          running: activeSessions.some((activeSession) => activeSession.name === session),
           source: 'tmuxinator',
           session,
         };

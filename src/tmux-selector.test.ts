@@ -27,7 +27,10 @@ describe('tmux selector project logic', () => {
   });
 
   test('merges running tmux sessions after tmuxinator projects', () => {
-    const projects = mergeProjects([project('configured')], ['configured', 'worktree-session']);
+    const projects = mergeProjects([project('configured')], [
+      { name: 'configured', path: '/projects/configured' },
+      { name: 'worktree-session', path: '/worktrees/example/feature-test' },
+    ]);
 
     expect(projects).toEqual([
       project('configured'),
@@ -35,7 +38,7 @@ describe('tmux selector project logic', () => {
         name: 'worktree-session',
         scope: 'tmux',
         project: 'tmux/worktree-session',
-        root: 'Running tmux session',
+        root: '/worktrees/example/feature-test',
         running: true,
         source: 'tmux',
         session: 'worktree-session',
@@ -45,7 +48,10 @@ describe('tmux selector project logic', () => {
 
   test('deduplicates by canonical tmux session name with tmuxinator winning', () => {
     const configured = project('display-name', { session: 'canonical-session' });
-    const projects = mergeProjects([configured], ['canonical-session', 'canonical-session']);
+    const projects = mergeProjects([configured], [
+      { name: 'canonical-session', path: '/projects/first' },
+      { name: 'canonical-session', path: '/projects/second' },
+    ]);
 
     expect(projects).toEqual([configured]);
   });

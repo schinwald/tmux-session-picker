@@ -43,7 +43,7 @@ Options:
 -v, --version  Show version number
 ```
 
-The picker lists tmuxinator projects and all active tmux sessions. When a running session has the same canonical name as a tmuxinator project, the tmuxinator project is shown once. Selecting a tmuxinator project starts it if needed; selecting a running session opens it directly without invoking tmuxinator. When run inside tmux, it switches the current client instead of nesting a tmux session. It reports a clear error if `tmux` or `tmuxinator` is not installed.
+The picker lists tmuxinator projects and all active tmux sessions. Running sessions display tmux's stable session path (the directory where tmux created the session). When a running session has the same canonical name as a tmuxinator project, the tmuxinator project is shown once. Selecting a tmuxinator project starts it if needed; selecting a running session opens it directly without invoking tmuxinator. When run inside tmux, it switches the current client instead of nesting a tmux session. It reports a clear error if `tmux` or `tmuxinator` is not installed.
 
 ### tmux key binding
 
