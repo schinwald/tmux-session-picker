@@ -3,14 +3,17 @@ import { homedir, tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, test } from 'bun:test';
 import { favoritesPath, getFavoritesPath, loadFavorites, saveFavorites } from './favorites';
-import { displayRoot, sessionName, sortProjects, type Project } from './projects';
+import { displayRoot, mergeProjects, sessionName, sortProjects, type Project } from './projects';
 
-const project = (name: string): Project => ({
+const project = (name: string, overrides: Partial<Project> = {}): Project => ({
   name,
   scope: 'scope',
   project: `scope/${name}`,
   root: `/tmp/${name}`,
   running: false,
+  source: 'tmuxinator',
+  session: name,
+  ...overrides,
 });
 
 describe('tmux selector project logic', () => {
@@ -21,6 +24,30 @@ describe('tmux selector project logic', () => {
   test('displays home and non-home roots', () => {
     expect(displayRoot('/tmp/example')).toBe('/tmp/example');
     expect(displayRoot(`${process.env.HOME}/example`)).toBe('~/example');
+  });
+
+  test('merges running tmux sessions after tmuxinator projects', () => {
+    const projects = mergeProjects([project('configured')], ['configured', 'worktree-session']);
+
+    expect(projects).toEqual([
+      project('configured'),
+      {
+        name: 'worktree-session',
+        scope: 'tmux',
+        project: 'tmux/worktree-session',
+        root: 'Running tmux session',
+        running: true,
+        source: 'tmux',
+        session: 'worktree-session',
+      },
+    ]);
+  });
+
+  test('deduplicates by canonical tmux session name with tmuxinator winning', () => {
+    const configured = project('display-name', { session: 'canonical-session' });
+    const projects = mergeProjects([configured], ['canonical-session', 'canonical-session']);
+
+    expect(projects).toEqual([configured]);
   });
 
   test('sorts favorites first while preserving original order', () => {

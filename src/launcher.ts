@@ -1,6 +1,5 @@
 import { spawnSync } from 'node:child_process';
 import type { Project } from './projects';
-import { sessionName } from './projects';
 
 export type CommandRunner = (command: string, arguments_: string[]) => number;
 
@@ -15,11 +14,11 @@ export type LauncherOptions = {
 export const openProject = (project: Project, options: LauncherOptions = {}): number => {
   const insideTmux = options.insideTmux ?? Boolean(process.env.TMUX);
   const run = options.run ?? runCommand;
-  if (!project.running) {
+  if (project.source === 'tmuxinator' && !project.running) {
     const started = run('tmuxinator', ['start', project.project]);
     if (started !== 0) return started;
   }
 
   const command = insideTmux ? 'switch-client' : 'attach-session';
-  return run('tmux', [command, '-t', sessionName(project.project)]);
+  return run('tmux', [command, '-t', project.session]);
 };

@@ -8,6 +8,18 @@ const project = (running = false): Project => ({
   project: 'scope/example',
   root: '/tmp/example',
   running,
+  source: 'tmuxinator',
+  session: 'example',
+});
+
+const rawSession = (): Project => ({
+  name: 'worktree-session',
+  scope: 'tmux',
+  project: 'tmux/worktree-session',
+  root: 'Running tmux session',
+  running: true,
+  source: 'tmux',
+  session: 'worktree-session',
 });
 
 const runner = (statusByCommand: Record<string, number> = {}) => {
@@ -34,6 +46,22 @@ describe('session launcher', () => {
     expect(openProject(project(true), { insideTmux: true, run })).toBe(0);
     expect(calls).toEqual([
       { command: 'tmux', arguments_: ['switch-client', '-t', 'example'] },
+    ]);
+  });
+
+  test('attaches raw tmux sessions without invoking tmuxinator', () => {
+    const { calls, run } = runner();
+    expect(openProject(rawSession(), { insideTmux: false, run })).toBe(0);
+    expect(calls).toEqual([
+      { command: 'tmux', arguments_: ['attach-session', '-t', 'worktree-session'] },
+    ]);
+  });
+
+  test('switches raw tmux sessions instead of nesting tmux', () => {
+    const { calls, run } = runner();
+    expect(openProject(rawSession(), { insideTmux: true, run })).toBe(0);
+    expect(calls).toEqual([
+      { command: 'tmux', arguments_: ['switch-client', '-t', 'worktree-session'] },
     ]);
   });
 

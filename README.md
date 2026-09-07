@@ -1,6 +1,6 @@
 # tmux-session-picker
 
-Interactive picker for [tmuxinator](https://github.com/tmuxinator/tmuxinator) projects. It shows whether a session is running, filters projects as you type, and starts then attaches to the chosen session.
+Interactive picker for [tmuxinator](https://github.com/tmuxinator/tmuxinator) projects and running tmux sessions. It shows whether a session is running, filters projects as you type, and starts or opens the chosen session.
 
 ## Requirements
 
@@ -43,7 +43,7 @@ Options:
 -v, --version  Show version number
 ```
 
-Select a project to start it if needed, then attach to its tmux session. When run inside tmux, it switches the current client instead. It reports a clear error if `tmux` or `tmuxinator` is not installed.
+The picker lists tmuxinator projects and all active tmux sessions. When a running session has the same canonical name as a tmuxinator project, the tmuxinator project is shown once. Selecting a tmuxinator project starts it if needed; selecting a running session opens it directly without invoking tmuxinator. When run inside tmux, it switches the current client instead of nesting a tmux session. It reports a clear error if `tmux` or `tmuxinator` is not installed.
 
 ### tmux key binding
 

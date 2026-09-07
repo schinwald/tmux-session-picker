@@ -3,12 +3,16 @@ import { readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 
+export type ProjectSource = 'tmuxinator' | 'tmux';
+
 export type Project = {
   name: string;
   scope: string;
   project: string;
   root: string;
   running: boolean;
+  source: ProjectSource;
+  session: string;
 };
 
 const home = homedir();
@@ -32,14 +36,14 @@ export const sessionName = (project: string) => {
 export const displayRoot = (root: string) =>
   root === home ? '~' : root.startsWith(`${home}/`) ? `~/${root.slice(home.length + 1)}` : root;
 
-const runningSessions = (): Set<string> => {
+const runningSessions = (): string[] => {
   try {
     const output = execFileSync('tmux', ['list-sessions', '-F', '#{session_name}'], {
       encoding: 'utf8',
     });
-    return new Set(output.trim().split('\n').filter(Boolean));
+    return output.trim().split('\n').map((session) => session.trim()).filter(Boolean);
   } catch {
-    return new Set();
+    return [];
   }
 };
 
@@ -55,6 +59,23 @@ const getRoot = (project: string) => {
   }
 };
 
+export const mergeProjects = (tmuxinatorProjects: Project[], activeSessions: Iterable<string>): Project[] => {
+  const configuredSessions = new Set(tmuxinatorProjects.map((project) => project.session));
+  const rawSessions = [...new Set(activeSessions)]
+    .filter((session) => !configuredSessions.has(session))
+    .map((session): Project => ({
+      name: session,
+      scope: 'tmux',
+      project: `tmux/${session}`,
+      root: 'Running tmux session',
+      running: true,
+      source: 'tmux',
+      session,
+    }));
+
+  return [...tmuxinatorProjects, ...rawSessions];
+};
+
 export const sortProjects = (projects: Project[], favorites: Set<string>): Project[] =>
   projects
     .map((project, index) => ({ project, index }))
@@ -66,24 +87,30 @@ export const sortProjects = (projects: Project[], favorites: Set<string>): Proje
     .map(({ project }) => project);
 
 export const getProjects = (): Project[] => {
+  const activeSessions = runningSessions();
   try {
     const output = execFileSync('tmuxinator', ['list', '--newline'], {
       encoding: 'utf8',
     });
-    const activeSessions = runningSessions();
-
-    return output
+    const tmuxinatorProjects = output
       .split('\n')
       .map((line) => line.trim())
       .filter((line) => line && !line.startsWith('tmuxinator projects:'))
-      .map((project) => ({
-        name: sessionName(project),
-        scope: project.split('/')[0] ?? '',
-        project,
-        root: getRoot(project),
-        running: activeSessions.has(sessionName(project)),
-      }));
+      .map((project): Project => {
+        const session = sessionName(project);
+        return {
+          name: session,
+          scope: project.split('/')[0] ?? '',
+          project,
+          root: getRoot(project),
+          running: activeSessions.includes(session),
+          source: 'tmuxinator',
+          session,
+        };
+      });
+
+    return mergeProjects(tmuxinatorProjects, activeSessions);
   } catch {
-    return [];
+    return mergeProjects([], activeSessions);
   }
 };

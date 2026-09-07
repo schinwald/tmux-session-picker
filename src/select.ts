@@ -24,7 +24,7 @@ let projects: Project[] = [];
 
 const selectFallback = async (): Promise<Project | null> => {
   if (projects.length === 0) {
-    console.log('No tmuxinator projects found.');
+    console.log('No tmuxinator projects or running tmux sessions found.');
     return null;
   }
 
@@ -250,7 +250,7 @@ const main = async () => {
   favorites = loadFavorites();
   projects = sortProjects(getProjects(), favorites);
   if (projects.length === 0) {
-    console.log('No tmuxinator projects found.');
+    console.log('No tmuxinator projects or running tmux sessions found.');
     return;
   }
 
