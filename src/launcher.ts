@@ -11,14 +11,19 @@ export type LauncherOptions = {
   run?: CommandRunner;
 };
 
-export const openProject = (project: Project, options: LauncherOptions = {}): number => {
+export const openSession = (session: string, options: LauncherOptions = {}): number => {
   const insideTmux = options.insideTmux ?? Boolean(process.env.TMUX);
+  const run = options.run ?? runCommand;
+  const command = insideTmux ? 'switch-client' : 'attach-session';
+  return run('tmux', [command, '-t', session]);
+};
+
+export const openProject = (project: Project, options: LauncherOptions = {}): number => {
   const run = options.run ?? runCommand;
   if (project.source === 'tmuxinator' && !project.running) {
     const started = run('tmuxinator', ['start', project.project]);
     if (started !== 0) return started;
   }
 
-  const command = insideTmux ? 'switch-client' : 'attach-session';
-  return run('tmux', [command, '-t', project.session]);
+  return openSession(project.session, options);
 };

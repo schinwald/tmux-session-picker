@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { openProject, type CommandRunner } from './launcher';
+import { openProject, openSession, type CommandRunner } from './launcher';
 import type { Project } from './projects';
 
 const project = (running = false): Project => ({
@@ -32,6 +32,22 @@ const runner = (statusByCommand: Record<string, number> = {}) => {
 };
 
 describe('session launcher', () => {
+  test('opens a named session directly outside tmux', () => {
+    const { calls, run } = runner();
+    expect(openSession('my-session', { insideTmux: false, run })).toBe(0);
+    expect(calls).toEqual([
+      { command: 'tmux', arguments_: ['attach-session', '-t', 'my-session'] },
+    ]);
+  });
+
+  test('switches to a named session directly inside tmux', () => {
+    const { calls, run } = runner();
+    expect(openSession('my-session', { insideTmux: true, run })).toBe(0);
+    expect(calls).toEqual([
+      { command: 'tmux', arguments_: ['switch-client', '-t', 'my-session'] },
+    ]);
+  });
+
   test('starts a lazy project then attaches outside tmux', () => {
     const { calls, run } = runner();
     expect(openProject(project(), { insideTmux: false, run })).toBe(0);

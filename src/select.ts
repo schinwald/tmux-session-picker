@@ -1,10 +1,9 @@
 import { createInterface } from 'node:readline/promises';
 import { stdin as input, stdout as output } from 'node:process';
 import { getProjects, sortProjects, type Project, displayRoot } from './projects';
-import { openProject } from './launcher';
+import { openProject, openSession } from './launcher';
 import { loadFavorites, saveFavorites } from './favorites';
 import { parseCliArguments, programVersion, usage } from './cli';
-import { dependencyError, missingDependencies } from './dependencies';
 
 const reset = '\u001b[0m';
 const dim = '\u001b[2m';
@@ -38,6 +37,11 @@ const selectFallback = async (): Promise<Project | null> => {
   readline.close();
   if (answer.trim().toLowerCase() === 'q') return null;
   return projects[Number(answer) - 1] ?? null;
+};
+
+const openSelectedSession = (session: string, availableProjects: Project[] = projects): number => {
+  const selected = availableProjects.find((project) => project.session === session);
+  return selected ? openProject(selected) : openSession(session);
 };
 
 const selectInteractive = async (): Promise<Project | null> => {
@@ -240,22 +244,20 @@ const main = async () => {
     return;
   }
 
-  const missing = missingDependencies();
-  if (missing.length > 0) {
-    console.error(dependencyError(missing));
-    process.exitCode = 1;
-    return;
-  }
-
   favorites = loadFavorites();
   projects = sortProjects(getProjects(), favorites);
+
+  if (action && typeof action === 'object') {
+    process.exitCode = openSelectedSession(action.session);
+    return;
+  }
   if (projects.length === 0) {
     console.log('No tmuxinator projects or running tmux sessions found.');
     return;
   }
 
   const selected = input.isTTY && output.isTTY ? await selectInteractive() : await selectFallback();
-  if (selected) process.exitCode = openProject(selected);
+  if (selected) process.exitCode = openSelectedSession(selected.session);
 };
 
 void main();

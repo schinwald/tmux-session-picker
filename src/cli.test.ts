@@ -15,6 +15,11 @@ describe('CLI arguments', () => {
     expect(programVersion).toBe(packageJson.version);
   });
 
+  test('parses a session argument', () => {
+    expect(parseCliArguments(['--session', 'my-session'])).toEqual({ session: 'my-session' });
+    expect(parseCliArguments(['-s', 'my-session'])).toEqual({ session: 'my-session' });
+  });
+
   test('does not select an action without a flag', () => {
     expect(parseCliArguments([])).toBeNull();
   });

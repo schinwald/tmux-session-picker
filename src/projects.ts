@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 
@@ -22,8 +22,9 @@ export type Project = {
 
 const home = homedir();
 
-const configPath = (project: string) =>
-  join(home, '.config', 'tmuxinator', `${project}.yml`);
+const configRoot = join(home, '.config', 'tmuxinator');
+
+const configPath = (project: string) => join(configRoot, `${project}.yml`);
 
 const readConfig = (project: string): string | undefined => {
   try {
@@ -33,10 +34,13 @@ const readConfig = (project: string): string | undefined => {
   }
 };
 
-export const sessionName = (project: string) => {
-  const configuredName = readConfig(project)?.match(/^name:\s*["']?([^"'\n]+?)["']?\s*$/m)?.[1]?.trim();
-  return configuredName || project.split('/').at(-1) || project;
-};
+const sessionNameFromConfig = (project: string, config: string) =>
+  config.match(/^name:\s*["']?([^"'\n]+?)["']?\s*$/m)?.[1]?.trim() ||
+  project.split('/').at(-1) ||
+  project;
+
+export const sessionName = (project: string) =>
+  sessionNameFromConfig(project, readConfig(project) ?? '');
 
 export const displayRoot = (root: string) =>
   root === home ? '~' : root.startsWith(`${home}/`) ? `~/${root.slice(home.length + 1)}` : root;
@@ -55,15 +59,22 @@ const runningSessions = (): TmuxSession[] => {
   }
 };
 
-const getRoot = (project: string) => {
+const rootFromConfig = (config: string) => {
+  const root = config.match(/^root:\s*["']?([^"'\n]+?)["']?\s*$/m)?.[1]?.trim();
+  return root ? root.replace(/^~(?=\/|$)/, home) : 'Root unavailable';
+};
+
+const configProjects = (directory = configRoot, prefix = ''): Array<{ project: string; config: string }> => {
   try {
-    const config = readConfig(project);
-    if (!config) return 'Root unavailable';
-    const root = config.match(/^root:\s*["']?([^"'\n]+?)["']?\s*$/m)?.[1]?.trim();
-    if (!root) return 'Root unavailable';
-    return root.replace(/^~(?=\/|$)/, home);
+    return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+      const project = prefix ? `${prefix}/${entry.name}` : entry.name;
+      const path = join(directory, entry.name);
+      if (entry.isDirectory()) return configProjects(path, project);
+      if (!entry.isFile() || !entry.name.endsWith('.yml')) return [];
+      return [{ project: project.slice(0, -4), config: readFileSync(path, 'utf8') }];
+    });
   } catch {
-    return 'Root unavailable';
+    return [];
   }
 };
 
@@ -96,29 +107,19 @@ export const sortProjects = (projects: Project[], favorites: Set<string>): Proje
 
 export const getProjects = (): Project[] => {
   const activeSessions = runningSessions();
-  try {
-    const output = execFileSync('tmuxinator', ['list', '--newline'], {
-      encoding: 'utf8',
-    });
-    const tmuxinatorProjects = output
-      .split('\n')
-      .map((line) => line.trim())
-      .filter((line) => line && !line.startsWith('tmuxinator projects:'))
-      .map((project): Project => {
-        const session = sessionName(project);
-        return {
-          name: session,
-          scope: project.split('/')[0] ?? '',
-          project,
-          root: getRoot(project),
-          running: activeSessions.some((activeSession) => activeSession.name === session),
-          source: 'tmuxinator',
-          session,
-        };
-      });
+  const activeSessionNames = new Set(activeSessions.map((session) => session.name));
+  const tmuxinatorProjects = configProjects().map(({ project, config }): Project => {
+    const session = sessionNameFromConfig(project, config);
+    return {
+      name: session,
+      scope: project.split('/')[0] ?? '',
+      project,
+      root: rootFromConfig(config),
+      running: activeSessionNames.has(session),
+      source: 'tmuxinator',
+      session,
+    };
+  });
 
-    return mergeProjects(tmuxinatorProjects, activeSessions);
-  } catch {
-    return mergeProjects([], activeSessions);
-  }
+  return mergeProjects(tmuxinatorProjects, activeSessions);
 };
